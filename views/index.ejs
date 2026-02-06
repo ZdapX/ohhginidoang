@@ -9,10 +9,10 @@
 </head>
 <body>
     <div class="container">
-        <div id="status-card" class="card idle">
+        <div id="status-card" class="card low">
             <p class="label">Status Keamanan</p>
-            <h2 id="attack-status">Menganalisa...</h2>
-            <p id="detect-msg">Memulai pemantauan trafik</p>
+            <h2 id="attack-status">Menghubungkan...</h2>
+            <p id="detect-msg">Memulai pemantauan...</p>
         </div>
 
         <div class="card chart-container">
@@ -22,49 +22,54 @@
 
         <div class="stats-grid">
             <div class="card">
-                <p class="label">RPS Saat Ini</p>
+                <p class="label">Requests / Sec</p>
                 <h2 id="rps-value">0</h2>
             </div>
             <div class="card">
-                <p class="label">Network Load</p>
-                <h2 id="load-msg">Optimal</h2>
+                <p class="label">Network Status</p>
+                <h2 id="load-msg">Stable</h2>
             </div>
         </div>
     </div>
 
     <script>
         const ctx = document.getElementById('attackChart').getContext('2d');
-        let chartData = Array(30).fill(0); // 30 titik awal (lurus di 0)
+        let chartData = Array(40).fill(0); 
 
         const attackChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array(30).fill(''),
+                labels: Array(40).fill(''),
                 datasets: [{
                     data: chartData,
                     borderColor: '#00ff88',
                     borderWidth: 2,
                     pointRadius: 0,
                     fill: false,
-                    tension: 0.3
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, max: 150, grid: { color: '#334155' } },
+                    y: { 
+                        beginAtZero: true, 
+                        suggestedMax: 100,
+                        grid: { color: '#1e293b' },
+                        ticks: { color: '#64748b' }
+                    },
                     x: { display: false }
                 },
                 plugins: { legend: { display: false } },
-                animation: false
+                animation: { duration: 400 }
             }
         });
 
-        // Fungsi ambil data dari backend tiap 1 detik
         async function updateStats() {
             try {
-                const response = await fetch('/api/stats');
+                // Tambahkan random parameter agar tidak di-cache browser
+                const response = await fetch('/api/stats?t=' + Date.now());
                 const data = await response.json();
 
                 document.getElementById('rps-value').innerText = data.rps;
@@ -73,8 +78,8 @@
                 const card = document.getElementById('status-card');
                 card.className = 'card ' + data.level;
 
-                if (data.rps > 20) {
-                    document.getElementById('detect-msg').innerText = "PERINGATAN: SERANGAN TERDETEKSI!";
+                if (data.rps > 15) {
+                    document.getElementById('detect-msg').innerText = "ADA YANG MENCOBA MENYERANG!";
                     document.getElementById('detect-msg').style.color = "#ff4444";
                     attackChart.data.datasets[0].borderColor = "#ef4444";
                 } else {
@@ -83,13 +88,12 @@
                     attackChart.data.datasets[0].borderColor = "#00ff88";
                 }
 
-                // Update Grafik
                 attackChart.data.datasets[0].data.push(data.rps);
                 attackChart.data.datasets[0].data.shift();
                 attackChart.update();
 
             } catch (err) {
-                console.log("Koneksi terputus...");
+                console.log("Retrying...");
             }
         }
 
