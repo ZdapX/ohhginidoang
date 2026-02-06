@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDoS Real-time Monitor</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>System Monitor</h1>
+        
+        <div id="status-card" class="card idle">
+            <p class="label">Status Keamanan</p>
+            <h2 id="attack-status">Menunggu Data...</h2>
+        </div>
+
+        <div class="stats-grid">
+            <div class="card">
+                <p class="label">Request Per Second (RPS)</p>
+                <h2 id="rps-value">0</h2>
+            </div>
+            <div class="card">
+                <p class="label">Deteksi</p>
+                <h2 id="detect-msg">System Clean</h2>
+            </div>
+        </div>
+
+        <div class="log-container">
+            <p class="label">Live Activity Logs</p>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const statusCard = document.getElementById('status-card');
+        const attackStatus = document.getElementById('attack-status');
+        const rpsValue = document.getElementById('rps-value');
+        const detectMsg = document.getElementById('detect-msg');
+        const logs = document.getElementById('logs');
+
+        socket.on('updateStats', (data) => {
+            rpsValue.innerText = data.rps;
+            attackStatus.innerText = data.status;
+            
+            // Reset class
+            statusCard.className = 'card ' + data.level;
+
+            if (data.rps > 20) {
+                detectMsg.innerText = "ADA YANG MENCOBA MENYERANG";
+                detectMsg.style.color = "#ff4444";
+                
+                // Tambah log jika ada serangan
+                const logEntry = document.createElement('p');
+                logEntry.innerText = `[${new Date().toLocaleTimeString()}] Lonjakan terdeteksi: ${data.rps} RPS`;
+                logs.prepend(logEntry);
+            } else {
+                detectMsg.innerText = "System Clean";
+                detectMsg.style.color = "#00ff88";
+            }
+        });
+    </script>
+</body>
+</html>
