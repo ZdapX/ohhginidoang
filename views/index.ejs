@@ -3,63 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DDoS Real-time Monitor</title>
+    <title>DDoS Live Monitor</title>
     <link rel="stylesheet" href="/style.css">
+    <!-- Import Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>System Monitor</h1>
+        <header>
+            <h1>Network Monitor</h1>
+            <div id="status-indicator" class="dot idle"></div>
+        </header>
         
         <div id="status-card" class="card idle">
             <p class="label">Status Keamanan</p>
-            <h2 id="attack-status">Menunggu Data...</h2>
+            <h2 id="attack-status">System Standby</h2>
+            <p id="detect-msg">Tidak ada ancaman terdeteksi</p>
+        </div>
+
+        <!-- AREA GRAFIK -->
+        <div class="card chart-container">
+            <p class="label">Live Activity (RPS)</p>
+            <canvas id="attackChart"></canvas>
         </div>
 
         <div class="stats-grid">
             <div class="card">
-                <p class="label">Request Per Second (RPS)</p>
+                <p class="label">Requests / Sec</p>
                 <h2 id="rps-value">0</h2>
             </div>
             <div class="card">
-                <p class="label">Deteksi</p>
-                <h2 id="detect-msg">System Clean</h2>
+                <p class="label">Server Load</p>
+                <h2 id="load-value">Normal</h2>
             </div>
-        </div>
-
-        <div class="log-container">
-            <p class="label">Live Activity Logs</p>
-            <div id="logs"></div>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const statusCard = document.getElementById('status-card');
-        const attackStatus = document.getElementById('attack-status');
-        const rpsValue = document.getElementById('rps-value');
-        const detectMsg = document.getElementById('detect-msg');
-        const logs = document.getElementById('logs');
+        
+        // Inisialisasi Chart.js
+        const ctx = document.getElementById('attackChart').getContext('2d');
+        const attackChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(20).fill(''), // Tampilkan 20 titik waktu
+                datasets: [{
+                    label: 'Requests Per Second',
+                    data: Array(20).fill(0),
+                    borderColor: '#00ff88',
+                    borderWidth: 2,
+                    pointRadius: 0, // Sembunyikan titik agar lurus mulus
+                    fill: false,
+                    tension: 0.4 // Membuat garis agak melengkung (smooth)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 500 }
+            }
+        });
 
         socket.on('updateStats', (data) => {
-            rpsValue.innerText = data.rps;
-            attackStatus.innerText = data.status;
+            // Update Text
+            document.getElementById('rps-value').innerText = data.rps;
+            document.getElementById('attack-status').innerText = data.status;
             
-            // Reset class
-            statusCard.className = 'card ' + data.level;
+            const card = document.getElementById('status-card');
+            const indicator = document.getElementById('status-indicator');
+            const msg = document.getElementById('detect-msg');
+
+            // Logika Warna & Grafik
+            card.className = 'card ' + data.level;
+            indicator.className = 'dot ' + data.level;
 
             if (data.rps > 20) {
-                detectMsg.innerText = "ADA YANG MENCOBA MENYERANG";
-                detectMsg.style.color = "#ff4444";
-                
-                // Tambah log jika ada serangan
-                const logEntry = document.createElement('p');
-                logEntry.innerText = `[${new Date().toLocaleTimeString()}] Lonjakan terdeteksi: ${data.rps} RPS`;
-                logs.prepend(logEntry);
+                msg.innerText = "ADA YANG MENCOBA MENYERANG!";
+                msg.style.color = "#ff4444";
+                attackChart.data.datasets[0].borderColor = "#ef4444";
             } else {
-                detectMsg.innerText = "System Clean";
-                detectMsg.style.color = "#00ff88";
+                msg.innerText = "Sistem berjalan normal";
+                msg.style.color = "#94a3b8";
+                attackChart.data.datasets[0].borderColor = "#00ff88";
             }
+
+            // Update Data Grafik (Geser data lama ke kiri)
+            attackChart.data.datasets[0].data.push(data.rps);
+            attackChart.data.datasets[0].data.shift();
+            attackChart.update();
         });
     </script>
 </body>
