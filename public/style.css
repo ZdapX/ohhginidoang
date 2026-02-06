@@ -1,5 +1,5 @@
 body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Inter', sans-serif;
     background-color: #0f172a;
     color: #f8fafc;
     margin: 0;
@@ -11,35 +11,39 @@ body {
 
 .container {
     width: 90%;
-    max-width: 600px;
+    max-width: 700px;
 }
 
-h1 {
-    font-weight: 300;
-    text-align: center;
-    margin-bottom: 2rem;
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
+
+h1 { font-weight: 400; font-size: 1.2rem; margin: 0; color: #94a3b8; }
 
 .card {
     background-color: #1e293b;
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 15px;
-    border-left: 5px solid #64748b;
-    transition: all 0.3s ease;
+    transition: 0.3s ease;
+}
+
+.chart-container {
+    height: 200px;
 }
 
 .label {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: #94a3b8;
     text-transform: uppercase;
-    margin: 0 0 10px 0;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
 }
 
-h2 {
-    margin: 0;
-    font-size: 1.5rem;
-}
+h2 { margin: 0; font-size: 1.8rem; }
 
 .stats-grid {
     display: grid;
@@ -47,24 +51,21 @@ h2 {
     gap: 15px;
 }
 
-/* Status Colors */
-.idle { border-left-color: #64748b; }
-.low { border-left-color: #00ff88; }
-.medium { border-left-color: #facc15; }
-.high { border-left-color: #f97316; }
-.critical { border-left-color: #ef4444; background-color: #450a0a; }
-
-.log-container {
-    background: #020617;
-    padding: 15px;
-    border-radius: 8px;
-    height: 150px;
-    overflow-y: auto;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
 }
 
-#logs p {
-    margin: 5px 0;
-    color: #64748b;
+/* Status Colors (Solid) */
+.idle { background-color: #475569; }
+.low { background-color: #00ff88; color: #000; }
+.medium { background-color: #facc15; color: #000; }
+.high { background-color: #f97316; color: #fff; }
+.critical { background-color: #ef4444; color: #fff; }
+
+#detect-msg {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 0.9rem;
 }
