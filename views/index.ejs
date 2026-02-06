@@ -5,100 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DDoS Live Monitor</title>
     <link rel="stylesheet" href="/style.css">
-    <!-- Import Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Network Monitor</h1>
-            <div id="status-indicator" class="dot idle"></div>
-        </header>
-        
         <div id="status-card" class="card idle">
             <p class="label">Status Keamanan</p>
-            <h2 id="attack-status">System Standby</h2>
-            <p id="detect-msg">Tidak ada ancaman terdeteksi</p>
+            <h2 id="attack-status">Menganalisa...</h2>
+            <p id="detect-msg">Memulai pemantauan trafik</p>
         </div>
 
-        <!-- AREA GRAFIK -->
         <div class="card chart-container">
-            <p class="label">Live Activity (RPS)</p>
+            <p class="label">Live Activity (Request Per Second)</p>
             <canvas id="attackChart"></canvas>
         </div>
 
         <div class="stats-grid">
             <div class="card">
-                <p class="label">Requests / Sec</p>
+                <p class="label">RPS Saat Ini</p>
                 <h2 id="rps-value">0</h2>
             </div>
             <div class="card">
-                <p class="label">Server Load</p>
-                <h2 id="load-value">Normal</h2>
+                <p class="label">Network Load</p>
+                <h2 id="load-msg">Optimal</h2>
             </div>
         </div>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        
-        // Inisialisasi Chart.js
         const ctx = document.getElementById('attackChart').getContext('2d');
+        let chartData = Array(30).fill(0); // 30 titik awal (lurus di 0)
+
         const attackChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array(20).fill(''), // Tampilkan 20 titik waktu
+                labels: Array(30).fill(''),
                 datasets: [{
-                    label: 'Requests Per Second',
-                    data: Array(20).fill(0),
+                    data: chartData,
                     borderColor: '#00ff88',
                     borderWidth: 2,
-                    pointRadius: 0, // Sembunyikan titik agar lurus mulus
+                    pointRadius: 0,
                     fill: false,
-                    tension: 0.4 // Membuat garis agak melengkung (smooth)
+                    tension: 0.3
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true, grid: { color: '#334155' } },
+                    y: { beginAtZero: true, max: 150, grid: { color: '#334155' } },
                     x: { display: false }
                 },
                 plugins: { legend: { display: false } },
-                animation: { duration: 500 }
+                animation: false
             }
         });
 
-        socket.on('updateStats', (data) => {
-            // Update Text
-            document.getElementById('rps-value').innerText = data.rps;
-            document.getElementById('attack-status').innerText = data.status;
-            
-            const card = document.getElementById('status-card');
-            const indicator = document.getElementById('status-indicator');
-            const msg = document.getElementById('detect-msg');
+        // Fungsi ambil data dari backend tiap 1 detik
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
 
-            // Logika Warna & Grafik
-            card.className = 'card ' + data.level;
-            indicator.className = 'dot ' + data.level;
+                document.getElementById('rps-value').innerText = data.rps;
+                document.getElementById('attack-status').innerText = data.status;
+                
+                const card = document.getElementById('status-card');
+                card.className = 'card ' + data.level;
 
-            if (data.rps > 20) {
-                msg.innerText = "ADA YANG MENCOBA MENYERANG!";
-                msg.style.color = "#ff4444";
-                attackChart.data.datasets[0].borderColor = "#ef4444";
-            } else {
-                msg.innerText = "Sistem berjalan normal";
-                msg.style.color = "#94a3b8";
-                attackChart.data.datasets[0].borderColor = "#00ff88";
+                if (data.rps > 20) {
+                    document.getElementById('detect-msg').innerText = "PERINGATAN: SERANGAN TERDETEKSI!";
+                    document.getElementById('detect-msg').style.color = "#ff4444";
+                    attackChart.data.datasets[0].borderColor = "#ef4444";
+                } else {
+                    document.getElementById('detect-msg').innerText = "Sistem berjalan normal";
+                    document.getElementById('detect-msg').style.color = "#94a3b8";
+                    attackChart.data.datasets[0].borderColor = "#00ff88";
+                }
+
+                // Update Grafik
+                attackChart.data.datasets[0].data.push(data.rps);
+                attackChart.data.datasets[0].data.shift();
+                attackChart.update();
+
+            } catch (err) {
+                console.log("Koneksi terputus...");
             }
+        }
 
-            // Update Data Grafik (Geser data lama ke kiri)
-            attackChart.data.datasets[0].data.push(data.rps);
-            attackChart.data.datasets[0].data.shift();
-            attackChart.update();
-        });
+        setInterval(updateStats, 1000);
     </script>
 </body>
 </html>
